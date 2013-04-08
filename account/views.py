@@ -9,7 +9,10 @@ from django.views.generic.base import TemplateResponseMixin, View
 from django.views.generic.edit import FormView
 
 from django.contrib import auth, messages
-from django.contrib.auth.models import User
+try:
+    from django.contrib.auth import get_user_model  # Django 1.5
+except ImportError:
+    from account.future_1_5 import get_user_model
 from django.contrib.sites.models import get_current_site
 from django.contrib.auth.tokens import default_token_generator
 
@@ -24,6 +27,7 @@ from account.utils import default_redirect, user_display
 
 
 class SignupView(FormView):
+    User = get_user_model()
     
     template_name = "account/signup.html"
     template_name_email_confirmation_sent = "account/email_confirmation_sent.html"
@@ -148,7 +152,7 @@ class SignupView(FormView):
         return self.redirect_field_name
     
     def create_user(self, form, commit=True, **kwargs):
-        user = User(**kwargs)
+        user = self.User(**kwargs)
         username = form.cleaned_data.get("username")
         if username is None:
             username = self.generate_username(form)
@@ -478,7 +482,7 @@ class PasswordResetView(FormView):
     def send_email(self, email):
         protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
         current_site = get_current_site(self.request)
-        for user in User.objects.filter(email__iexact=email):
+        for user in self.User.objects.filter(email__iexact=email):
             uid = int_to_base36(user.id)
             token = self.make_token(user)
             password_reset_url = u"%s://%s%s" % (
@@ -567,7 +571,7 @@ class PasswordResetTokenView(FormView):
             uid_int = base36_to_int(self.kwargs["uidb36"])
         except ValueError:
             raise Http404()
-        return get_object_or_404(User, id=uid_int)
+        return get_object_or_404(self.User, id=uid_int)
     
     def check_token(self, user, token):
         return self.token_generator.check_token(user, token)
