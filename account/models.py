@@ -14,7 +14,11 @@ from django.template.loader import render_to_string
 from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy as _
 
-from django.contrib.auth.models import User, AnonymousUser
+try:
+    from django.contrib.auth import get_user_model  # Django 1.5
+except ImportError:
+    from account.future_1_5 import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.sites.models import Site
 
 import pytz
@@ -28,6 +32,7 @@ from account.utils import random_token
 
 
 class Account(models.Model):
+    User = get_user_model()
 
     user = models.OneToOneField(User, related_name="account", verbose_name=_("user"))
     timezone = TimeZoneField(_("timezone"))
@@ -88,7 +93,7 @@ class Account(models.Model):
         return value.astimezone(pytz.timezone(timezone))
 
 
-@receiver(post_save, sender=User)
+@receiver(post_save, sender=Account.User)
 def user_post_save(sender, **kwargs):
     """
     After User.save is called we check to see if it was a created user. If so,
@@ -119,6 +124,7 @@ class AnonymousAccount(object):
 
 
 class SignupCode(models.Model):
+    User = get_user_model()
 
     class AlreadyExists(Exception):
         pass
@@ -222,6 +228,7 @@ class SignupCode(models.Model):
 
 
 class SignupCodeResult(models.Model):
+    User = get_user_model()
 
     signup_code = models.ForeignKey(SignupCode)
     user = models.ForeignKey(User)
@@ -233,6 +240,7 @@ class SignupCodeResult(models.Model):
 
 
 class EmailAddress(models.Model):
+    User = get_user_model()
 
     user = models.ForeignKey(User)
     email = models.EmailField(unique=settings.ACCOUNT_EMAIL_UNIQUE)
@@ -342,6 +350,7 @@ class EmailConfirmation(models.Model):
 
 
 class AccountDeletion(models.Model):
+    User = get_user_model()
 
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     email = models.EmailField()
