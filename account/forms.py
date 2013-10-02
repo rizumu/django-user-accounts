@@ -43,7 +43,7 @@ class SignupForm(forms.Form):
 
     def clean_username(self):
         User = get_user_model()
-         
+
         if not alnum_re.search(self.cleaned_data["username"]):
             raise forms.ValidationError(_("Usernames can only contain letters, numbers and underscores."))
         qs = User.objects.filter(username__iexact=self.cleaned_data["username"])
